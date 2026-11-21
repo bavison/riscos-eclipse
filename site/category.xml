@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature id="com.piccolosystems.riscos.feature">
+      <category name="riscos"/>
+   </feature>
+   <feature id="com.piccolosystems.riscos.cdt.feature">
+      <category name="riscos"/>
+   </feature>
+   <category-def name="riscos" label="RISC OS"/>
+   <!-- Where Eclipse finds LSP4E and TM4E if they aren't installed already. -->
+   <repository-reference location="https://download.eclipse.org/releases/2025-12" enabled="true"/>
+   <repository-reference location="https://download.eclipse.org/lsp4e/releases/latest/" enabled="true"/>
+   <repository-reference location="https://download.eclipse.org/tm4e/releases/latest/" enabled="true"/>
+</site>

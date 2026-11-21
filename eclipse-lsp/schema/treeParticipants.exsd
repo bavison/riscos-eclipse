@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema targetNamespace="com.piccolosystems.riscos.lsp" xmlns="http://www.w3.org/2001/XMLSchema">
+   <annotation>
+      <appInfo>
+         <meta.schema plugin="com.piccolosystems.riscos.lsp" id="treeParticipants" name="RISC OS build tree participants"/>
+      </appInfo>
+      <documentation>
+         Things an optional bundle does as a RISC OS build tree is imported, and as its active configuration changes.
+      </documentation>
+   </annotation>
+   <element name="extension">
+      <complexType>
+         <sequence>
+            <element ref="participant" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required"/>
+         <attribute name="id" type="string"/>
+         <attribute name="name" type="string"/>
+      </complexType>
+   </element>
+   <element name="participant">
+      <complexType>
+         <attribute name="class" type="string" use="required">
+            <annotation>
+               <documentation>An implementation of com.piccolosystems.riscos.lsp.TreeParticipant.</documentation>
+               <appInfo>
+                  <meta.attribute kind="java" basedOn=":com.piccolosystems.riscos.lsp.TreeParticipant"/>
+               </appInfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+</schema>

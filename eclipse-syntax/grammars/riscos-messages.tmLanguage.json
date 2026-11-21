@@ -1,0 +1,16 @@
+{
+  "name": "RISC OS Messages",
+  "scopeName": "source.riscos-messages",
+  "patterns": [
+    { "match": "^#.*$", "name": "comment.line.number-sign.riscos-messages" },
+    {
+      "match": "^([^:#\\s][^:\\s]*)(:)",
+      "captures": {
+        "1": { "name": "entity.name.tag.riscos-messages" },
+        "2": { "name": "punctuation.separator.key-value.riscos-messages" }
+      }
+    },
+    { "match": "%[0-3%]", "name": "constant.other.placeholder.riscos-messages" },
+    { "match": "␀", "name": "constant.character.escape.riscos-messages" }
+  ]
+}

@@ -1,0 +1,122 @@
+name: Windows
+
+# Windows: the plugins' tests, installing them into Eclipse as a user would, and
+# importing and indexing a package tree from ROOL's CI with MSYS2's bash and make.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  package-tree:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: MSYS2's make
+        shell: pwsh
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc 'pacman -S --noconfirm --needed make unzip'
+          C:\msys64\usr\bin\bash.exe -lc 'make --version | head -1; bash --version | head -1'
+
+      - name: A package tree from ROOL's CI
+        shell: bash
+        run: curl -sL -o /c/pkg.zip "https://gitlab.riscosopen.org/Products/BCM2835/-/jobs/artifacts/master/download?job=latest_package_tree"
+
+      - name: Unpacking with Windows' tar
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory C:\riscos | Out-Null
+          tar -xf C:\pkg.zip -C C:\riscos 2>&1 | Select -First 5
+          Write-Output "tar exit $LASTEXITCODE"
+          Get-ChildItem C:\riscos\RiscOS\Sources\HAL\HAL_BCM2835\objs | Select -First 4 | Format-Table -AutoSize Name, LinkType, Target
+          Get-ChildItem C:\riscos\RiscOS\Sources\Lib\Desk\objs -ErrorAction SilentlyContinue | Select -First 3 | ForEach-Object Name
+
+      - name: Build the indexer
+        shell: pwsh
+        run: |
+          $env:MSYS2_PATH_TYPE = 'inherit'
+          C:\msys64\usr\bin\bash.exe -lc "cd '$((Get-Location).Path -replace '\\','/')/asmindex' && ./build.sh"
+
+      - name: Import the package tree (buildscan), nothing added to the PATH
+        shell: pwsh
+        timeout-minutes: 30
+        run: |
+          $start = Get-Date
+          java -jar asmindex\build\objasm-index.jar buildscan C:\riscos\RiscOS ROOL/BCM2835 C:\scan 2>&1 | ForEach-Object { "{0,6:N0}s {1}" -f ((Get-Date) - $start).TotalSeconds, $_ }
+          (Get-ChildItem C:\scan -Directory).Count
+          if (Test-Path C:\scan\summary.json) { python -c "import json; s=json.load(open(r'C:\scan\summary.json')); print({k: (v if not isinstance(v,(list,dict)) else len(v)) for k,v in s.items()})" }
+          if (Test-Path C:\scan\environment.json) { python -c "import json; e=json.load(open(r'C:\scan\environment.json')); print(e['path_variables'].get('HDR')); print(e.get('problems'))" }
+          if (Test-Path C:\scan\HAL_BCM2835\objasm.json) { python -c "import json; print(json.dumps(json.load(open(r'C:\scan\HAL_BCM2835\objasm.json'))[0])[:600])" }
+
+      - name: Index it, and look things up
+        shell: pwsh
+        run: |
+          python .github\scripts\index.py asmindex\build\objasm-index.jar C:\scan C:\riscos\RiscOS\Sources\HAL\HAL_BCM2835\objs\Top.s
+          Get-Content lsp.log -Tail 5 -ErrorAction SilentlyContinue
+
+      - name: The same tree with CR LF line ends, as a git checkout with core.autocrlf would have
+        shell: pwsh
+        run: |
+          python .github\scripts\crlf.py C:\riscos\RiscOS
+          java -jar asmindex\build\objasm-index.jar buildscan C:\riscos\RiscOS ROOL/BCM2835 C:\scan-crlf 2>&1 | Select -Last 2
+          python .github\scripts\compare.py C:\scan C:\scan-crlf
+          python .github\scripts\index.py asmindex\build\objasm-index.jar C:\scan-crlf C:\riscos\RiscOS\Sources\HAL\HAL_BCM2835\objs\Top.s
+
+  eclipse-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: MSYS2's make
+        shell: pwsh
+        run: C:\msys64\usr\bin\bash.exe -lc 'pacman -S --noconfirm --needed make'
+      - name: Build, and the plugins tested in Eclipse
+        shell: pwsh
+        run: mvn -B -ntp verify "-Dmaven.test.failure.ignore=true"
+        env:
+          OBJASM_INDEX_TRACE: "1"
+      - name: Install Eclipse IDE for C/C++ Developers, then the update site zip, as a user would
+        shell: pwsh
+        run: |
+          Compress-Archive -Path site\target\repository\* -DestinationPath C:\riscos-eclipse.zip
+          curl.exe -sL -o C:\eclipse.zip "https://download.eclipse.org/technology/epp/downloads/release/2025-12/R/eclipse-cpp-2025-12-R-win32-x86_64.zip"
+          (Get-Item C:\eclipse.zip).Length
+          tar -xf C:\eclipse.zip -C C:\
+          $repo = "jar:file:/C:/riscos-eclipse.zip!/"
+          Measure-Command { C:\eclipse\eclipsec.exe -nosplash -consoleLog -application org.eclipse.equinox.p2.director `
+            -repository "$repo,https://download.eclipse.org/releases/2025-12,https://download.eclipse.org/lsp4e/releases/latest/,https://download.eclipse.org/tm4e/releases/latest/" `
+            -installIU com.piccolosystems.riscos.feature.feature.group,com.piccolosystems.riscos.cdt.feature.feature.group 2>&1 | Select -Last 25 | Out-Host } | Select TotalSeconds
+          C:\eclipse\eclipsec.exe -nosplash -consoleLog -application org.eclipse.equinox.p2.director -listInstalledRoots 2>&1 | Select-String riscos
+          Get-ChildItem C:\eclipse\plugins -Filter "com.piccolosystems*" | ForEach-Object Name
+
+      - name: Results (fails if any test failed)
+        if: always()
+        shell: bash
+        run: |
+          log=$(find eclipse-tests/target -path "*/.metadata/.log" | head -1); if [ -n "$log" ]; then tail -n 80 "$log"; fi
+          ls eclipse-tests/target/surefire-reports/*.xml >/dev/null 2>&1 || { echo "no test reports"; exit 1; }
+          python - eclipse-tests/target/surefire-reports/*.xml <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          bad = n = 0
+          for path in sys.argv[1:]:
+              for c in ET.parse(path).getroot().iter('testcase'):
+                  f = c.find('failure') if c.find('failure') is not None else c.find('error')
+                  print(('FAIL ' if f is not None else 'ok   ') + c.get('name') + ('  ' + (f.get('message') or '')[:600] if f is not None else ''))
+                  bad += f is not None
+                  n += 1
+          print(f'{n - bad} of {n} passed')
+          sys.exit(1 if bad or n == 0 else 0)
+          PY

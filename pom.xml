@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Builds the Eclipse update site: mvn verify, with Java 21 or later.
+  The result is site/target/repository (and a zip of it beside it).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <groupId>com.piccolosystems.riscos</groupId>
+   <artifactId>riscos-eclipse</artifactId>
+   <version>1.0.0-SNAPSHOT</version>
+   <packaging>pom</packaging>
+
+   <properties>
+      <tycho.version>4.0.13</tycho.version>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <!-- The Eclipse release the bundles are compiled against. -->
+      <eclipse.release>https://download.eclipse.org/releases/2025-12</eclipse.release>
+   </properties>
+
+   <modules>
+      <module>eclipse-syntax</module>
+      <module>eclipse-lsp</module>
+      <module>eclipse-cdt</module>
+      <module>eclipse-tests</module>
+      <module>feature</module>
+      <module>feature-cdt</module>
+      <module>site</module>
+   </modules>
+
+   <repositories>
+      <repository>
+         <id>eclipse-release</id>
+         <url>${eclipse.release}</url>
+         <layout>p2</layout>
+      </repository>
+   </repositories>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.eclipse.tycho</groupId>
+            <artifactId>tycho-maven-plugin</artifactId>
+            <version>${tycho.version}</version>
+            <extensions>true</extensions>
+         </plugin>
+         <plugin>
+            <groupId>org.eclipse.tycho</groupId>
+            <artifactId>target-platform-configuration</artifactId>
+            <version>${tycho.version}</version>
+            <configuration>
+               <environments>
+                  <environment><os>linux</os><ws>gtk</ws><arch>x86_64</arch></environment>
+                  <environment><os>win32</os><ws>win32</ws><arch>x86_64</arch></environment>
+                  <environment><os>macosx</os><ws>cocoa</ws><arch>x86_64</arch></environment>
+                  <environment><os>macosx</os><ws>cocoa</ws><arch>aarch64</arch></environment>
+               </environments>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+</project>

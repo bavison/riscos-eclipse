@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+  C and C++ in a RISC OS build tree, through CDT. Optional: the rest of the
+  RISC OS support works without it. Each component with C files is made a
+  C/C++ project whose only language settings come from buildscan, for the
+  tree's active configuration.
+-->
+<plugin>
+   <extension point="org.eclipse.cdt.core.LanguageSettingsProvider">
+      <provider
+            id="com.piccolosystems.riscos.cdt.languageSettings"
+            name="RISC OS build tree (include paths and macros from the makefiles)"
+            class="com.piccolosystems.riscos.cdt.RiscOSLanguageSettings"/>
+   </extension>
+   <!-- From C to assembler: Ctrl+click, and two commands on the C editor's menu. -->
+   <extension point="org.eclipse.ui.workbench.texteditor.hyperlinkDetectors">
+      <hyperlinkDetector
+            id="com.piccolosystems.riscos.cdt.asmLinks"
+            name="RISC OS: assembler definitions"
+            targetId="org.eclipse.cdt.ui.cCode"
+            class="com.piccolosystems.riscos.cdt.AsmLinks"/>
+   </extension>
+   <extension point="org.eclipse.ui.commands">
+      <command id="com.piccolosystems.riscos.cdt.openAsmDefinition" categoryId="com.piccolosystems.riscos.lsp.commands"
+            name="Open Assembler Definition"
+            description="Go to where the assembler of this component, or of a library it links with, defines the name"
+            defaultHandler="com.piccolosystems.riscos.cdt.AsmCommands$OpenDefinition"/>
+      <command id="com.piccolosystems.riscos.cdt.findAsmReferences" categoryId="com.piccolosystems.riscos.lsp.commands"
+            name="Find References in Assembler"
+            description="List where the assembler of this component, its libraries and the components using it, uses the name"
+            defaultHandler="com.piccolosystems.riscos.cdt.AsmCommands$FindReferences"/>
+   </extension>
+   <extension point="org.eclipse.ui.menus">
+      <menuContribution locationURI="popup:#CEditorContext?after=additions">
+         <separator name="riscos" visible="true"/>
+         <command commandId="com.piccolosystems.riscos.cdt.openAsmDefinition"/>
+         <command commandId="com.piccolosystems.riscos.cdt.findAsmReferences"/>
+      </menuContribution>
+   </extension>
+
+   <extension point="com.piccolosystems.riscos.lsp.treeParticipants">
+      <participant class="com.piccolosystems.riscos.cdt.CProjects"/>
+   </extension>
+   <!-- In an objs/ link farm, the assembler sources among C's, before the object files. -->
+   <extension point="org.eclipse.ui.navigator.navigatorContent">
+      <navigatorContent
+            id="com.piccolosystems.riscos.cdt.objsSorting"
+            name="RISC OS: link farm sources first"
+            priority="highest"
+            appearsBefore="org.eclipse.cdt.ui.navigator.content"
+            sortOnly="true"
+            activeByDefault="true">
+         <commonSorter
+               id="com.piccolosystems.riscos.cdt.objsSorter"
+               class="com.piccolosystems.riscos.cdt.ObjsSorter">
+            <parentExpression>
+               <adapt type="org.eclipse.core.resources.IResource">
+                  <test property="org.eclipse.core.resources.path" value="*/objs"/>
+               </adapt>
+            </parentExpression>
+         </commonSorter>
+      </navigatorContent>
+   </extension>
+   <extension point="org.eclipse.ui.navigator.viewer">
+      <viewerContentBinding viewerId="org.eclipse.ui.navigator.ProjectExplorer">
+         <includes>
+            <contentExtension pattern="com.piccolosystems.riscos.cdt.objsSorting"/>
+         </includes>
+      </viewerContentBinding>
+   </extension>
+</plugin>

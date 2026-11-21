@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The client bundle. Its only reason for a pom is to compile the language
+  server (../asmindex) and put objasm-index.jar inside the bundle, so that
+  nothing else needs installing.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <parent>
+      <groupId>com.piccolosystems.riscos</groupId>
+      <artifactId>riscos-eclipse</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+   </parent>
+   <artifactId>com.piccolosystems.riscos.lsp</artifactId>
+   <version>1.0.0-SNAPSHOT</version>
+   <packaging>eclipse-plugin</packaging>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+               <execution>
+                  <id>server-jar</id>
+                  <phase>generate-resources</phase>
+                  <goals><goal>run</goal></goals>
+                  <configuration>
+                     <target>
+                        <property name="classes" value="${project.build.directory}/server-classes"/>
+                        <delete dir="${classes}"/>
+                        <mkdir dir="${classes}"/>
+                        <javac srcdir="${project.basedir}/../asmindex/src" destdir="${classes}"
+                               release="17" encoding="UTF-8" includeantruntime="false"/>
+                        <copy todir="${classes}">
+                           <fileset dir="${project.basedir}/../asmindex/src" excludes="**/*.java"/>
+                        </copy>
+                        <mkdir dir="${project.basedir}/server"/>
+                        <jar destfile="${project.basedir}/server/objasm-index.jar" basedir="${classes}">
+                           <manifest>
+                              <attribute name="Main-Class" value="com.piccolosystems.riscos.asmindex.cli.Main"/>
+                           </manifest>
+                        </jar>
+                     </target>
+                  </configuration>
+               </execution>
+            </executions>
+         </plugin>
+      </plugins>
+   </build>
+</project>

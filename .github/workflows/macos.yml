@@ -1,0 +1,103 @@
+name: macOS
+
+# macOS: the plugins' tests, installing them into Eclipse as a user would, and
+# importing and indexing a package tree from ROOL's CI with Homebrew's GNU make.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  package-tree:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: The tools
+        run: |
+          sw_vers; uname -m
+          bash --version | head -1; make --version | head -1
+          brew install make
+          gmake --version | head -1; command -v gmake
+          env -0 >/dev/null && echo "env -0 works"
+
+      - name: A package tree from ROOL's CI, unpacked with unzip
+        run: |
+          curl -sL -o ~/pkg.zip "https://gitlab.riscosopen.org/Products/BCM2835/-/jobs/artifacts/master/download?job=latest_package_tree"
+          mkdir ~/riscos && cd ~/riscos && unzip -q ~/pkg.zip; echo "unzip exit $?"
+          ls -l RiscOS/Sources/HAL/HAL_BCM2835/objs | head -5
+          echo "links: $(find RiscOS/Sources -type l | wc -l)"
+
+      - name: Build the indexer
+        run: asmindex/build.sh
+
+      - name: Import the package tree (buildscan), with a minimal PATH as from the Dock
+        timeout-minutes: 30
+        run: |
+          start=$(date +%s)
+          env PATH=/usr/bin:/bin:/usr/sbin:/sbin JAVA_HOME="$JAVA_HOME" "$JAVA_HOME/bin/java" -jar asmindex/build/objasm-index.jar \
+            buildscan ~/riscos/RiscOS ROOL/BCM2835 ~/scan > ~/scan.log 2>&1 || true
+          grep -E "errors, first|components scanned" ~/scan.log | cut -c1-300
+          echo "took $(( $(date +%s) - start ))s"
+          python3 -c "import json; e=json.load(open('$HOME/scan/environment.json')); print(e['path_variables'].get('HDR')); print(e.get('problems'))"
+
+      - name: Index it, and look things up
+        run: python3 .github/scripts/index.py asmindex/build/objasm-index.jar ~/scan ~/riscos/RiscOS/Sources/HAL/HAL_BCM2835/objs/Top.s
+
+  eclipse-tests:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: GNU make
+        run: brew install make
+      - name: Maven 3.9, which Tycho 4 needs (the image's may be newer)
+        run: |
+          mvn -v | head -1 || true
+          curl -sL https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz | tar -xz -C ~
+          echo "$HOME/apache-maven-3.9.11/bin" >> "$GITHUB_PATH"
+      - name: Build, and the plugins tested in Eclipse
+        run: |
+          mvn -v | head -1
+          mvn -B -ntp verify -Dmaven.test.failure.ignore=true
+      - name: Install Eclipse IDE for C/C++ Developers, then the update site zip, as a user would
+        run: |
+          (cd site/target/repository && zip -qr ~/riscos-eclipse.zip .)
+          curl -sL -o ~/eclipse.dmg "https://download.eclipse.org/technology/epp/downloads/release/2025-12/R/eclipse-cpp-2025-12-R-macosx-cocoa-aarch64.dmg"
+          ls -l ~/eclipse.dmg
+          hdiutil attach -nobrowse -quiet -mountpoint /Volumes/Eclipse ~/eclipse.dmg
+          cp -R /Volumes/Eclipse/Eclipse.app ~/Eclipse.app
+          hdiutil detach -quiet /Volumes/Eclipse
+          start=$(date +%s)
+          ~/Eclipse.app/Contents/MacOS/eclipse -nosplash -consoleLog -application org.eclipse.equinox.p2.director \
+            -repository "jar:file:$HOME/riscos-eclipse.zip!/,https://download.eclipse.org/releases/2025-12,https://download.eclipse.org/lsp4e/releases/latest/,https://download.eclipse.org/tm4e/releases/latest/" \
+            -installIU com.piccolosystems.riscos.feature.feature.group,com.piccolosystems.riscos.cdt.feature.feature.group 2>&1 | grep -v "^\s*$" | tail -12
+          echo "took $(( $(date +%s) - start ))s"
+          ls ~/Eclipse.app/Contents/Eclipse/plugins | grep piccolosystems
+      - name: Results (fails if any test failed)
+        if: always()
+        shell: bash
+        run: |
+          log=$(find eclipse-tests/target -path "*/.metadata/.log" | head -1); if [ -n "$log" ]; then tail -n 60 "$log"; fi
+          ls eclipse-tests/target/surefire-reports/*.xml >/dev/null 2>&1 || { echo "no test reports"; exit 1; }
+          python3 - eclipse-tests/target/surefire-reports/*.xml <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          bad = n = 0
+          for path in sys.argv[1:]:
+              for c in ET.parse(path).getroot().iter('testcase'):
+                  f = c.find('failure') if c.find('failure') is not None else c.find('error')
+                  print(('FAIL ' if f is not None else 'ok   ') + c.get('name') + ('  ' + (f.get('message') or '')[:600] if f is not None else ''))
+                  bad += f is not None
+                  n += 1
+          print(f'{n - bad} of {n} passed')
+          sys.exit(1 if bad or n == 0 else 0)
+          PY

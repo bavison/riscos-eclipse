@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The update site. Its own pom only so that its artifacts can be signed:
+  with PGP, when the build is given a file holding an armoured private key
+  in PGP_SECRET_KEYS_FILE, and its passphrase in PGP_PASSPHRASE. Eclipse then
+  asks the user once whether to trust that key, rather than about unsigned
+  content on every install.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <parent>
+      <groupId>com.piccolosystems.riscos</groupId>
+      <artifactId>riscos-eclipse</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+   </parent>
+   <artifactId>site</artifactId>
+   <version>1.0.0-SNAPSHOT</version>
+   <packaging>eclipse-repository</packaging>
+
+   <profiles>
+      <profile>
+         <id>pgp-sign</id>
+         <activation>
+            <property>
+               <name>env.PGP_SECRET_KEYS_FILE</name>
+            </property>
+         </activation>
+         <build>
+            <plugins>
+               <plugin>
+                  <groupId>org.eclipse.tycho</groupId>
+                  <artifactId>tycho-gpg-plugin</artifactId>
+                  <version>${tycho.version}</version>
+                  <executions>
+                     <execution>
+                        <id>pgp-signatures</id>
+                        <phase>package</phase>
+                        <goals>
+                           <goal>sign-p2-artifacts</goal>
+                        </goals>
+                        <configuration>
+                           <signer>bc</signer>
+                           <secretKeys>${env.PGP_SECRET_KEYS_FILE}</secretKeys>
+                           <passphrase>${env.PGP_PASSPHRASE}</passphrase>
+                           <skipIfJarsigned>false</skipIfJarsigned>
+                        </configuration>
+                     </execution>
+                  </executions>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+   </profiles>
+</project>

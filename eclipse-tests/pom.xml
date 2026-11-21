@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Headless Eclipse tests: a workbench with CDT, LSP4E, TM4E and both RISC OS
+  bundles, on an invented tree with an objs/ link farm. Run under a virtual
+  display (xvfb-run) where there is no real one.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <parent>
+      <groupId>com.piccolosystems.riscos</groupId>
+      <artifactId>riscos-eclipse</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+   </parent>
+   <artifactId>com.piccolosystems.riscos.tests</artifactId>
+   <version>1.0.0-SNAPSHOT</version>
+   <packaging>eclipse-test-plugin</packaging>
+
+   <properties>
+      <ui.test.vmargs></ui.test.vmargs>
+   </properties>
+
+   <profiles>
+      <!-- SWT on macOS must run on the process's first thread. -->
+      <profile>
+         <id>macos</id>
+         <activation>
+            <os>
+               <family>mac</family>
+            </os>
+         </activation>
+         <properties>
+            <ui.test.vmargs>-XstartOnFirstThread</ui.test.vmargs>
+         </properties>
+      </profile>
+   </profiles>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.eclipse.tycho</groupId>
+            <artifactId>tycho-surefire-plugin</artifactId>
+            <version>${tycho.version}</version>
+            <configuration>
+               <providerHint>junit5</providerHint>
+               <useUIHarness>true</useUIHarness>
+               <useUIThread>false</useUIThread>
+               <application>org.eclipse.ui.ide.workbench</application>
+               <trimStackTrace>false</trimStackTrace>
+               <redirectTestOutputToFile>false</redirectTestOutputToFile>
+               <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
+               <argLine>${ui.test.vmargs}</argLine>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+</project>

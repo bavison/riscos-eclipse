@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+  Imports RISC OS build trees, and connects the objasm indexer's language
+  server (asmindex, run as "java -jar objasm-index.jar lsp") to ARM
+  assembler and BBC BASIC files through LSP4E, painting the server's
+  riscos/inactiveRegions as a grey background. Messages files and tokenised
+  BASIC are edited converted. The content types come from the syntax
+  colouring bundle.
+-->
+<plugin>
+   <!-- The real names of link farm files that are C, CMHG and the like (c/main for
+        objs/main.c): text, opened in the RISC OS Text Editor and at once reopened by the
+        link's name (see LinkRedirect). Given to files by name in their projects' settings. -->
+   <extension point="org.eclipse.core.contenttype.contentTypes">
+      <content-type
+            id="com.piccolosystems.riscos.linkTarget"
+            name="RISC OS link farm file, by its real name"
+            base-type="org.eclipse.core.runtime.text"/>
+   </extension>
+   <extension-point id="treeParticipants" name="RISC OS build tree participants" schema="schema/treeParticipants.exsd"/>
+
+   <extension point="org.eclipse.lsp4e.languageServer">
+      <server
+            id="com.piccolosystems.riscos.objasm"
+            label="objasm indexer"
+            class="com.piccolosystems.riscos.lsp.ObjasmServer"
+            clientImpl="com.piccolosystems.riscos.lsp.RiscOSLanguageClient"
+            singleton="true"/>
+      <contentTypeMapping
+            contentType="com.piccolosystems.riscos.armasm"
+            id="com.piccolosystems.riscos.objasm"
+            languageId="objasm"/>
+      <!-- BBC BASIC: the same server, each file indexed on its own. -->
+      <contentTypeMapping
+            contentType="com.piccolosystems.riscos.bbcbasic"
+            id="com.piccolosystems.riscos.objasm"
+            languageId="bbcbasic"/>
+   </extension>
+
+   <!-- Files edited converted: a Messages file's NULs shown as ␀, tokenised BASIC as text. -->
+   <extension point="org.eclipse.core.filesystem.filesystems" id="riscos-text">
+      <filesystem scheme="riscos-text">
+         <run class="com.piccolosystems.riscos.lsp.ConvertedFiles$Scheme"/>
+      </filesystem>
+   </extension>
+   <extension point="org.eclipse.ui.editors">
+      <editor
+            id="com.piccolosystems.riscos.lsp.textEditor"
+            name="RISC OS Text Editor"
+            class="com.piccolosystems.riscos.lsp.RiscOSTextEditor"
+            contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
+            matchingStrategy="com.piccolosystems.riscos.lsp.ConvertedFiles$Matching"
+            icon="platform:/plugin/org.eclipse.ui.genericeditor/icons/full/obj16/generic_editor.png"
+            default="true">
+         <contentTypeBinding contentTypeId="com.piccolosystems.riscos.armasm"/>
+         <contentTypeBinding contentTypeId="com.piccolosystems.riscos.bbcbasic"/>
+         <contentTypeBinding contentTypeId="com.piccolosystems.riscos.cmhg"/>
+         <contentTypeBinding contentTypeId="com.piccolosystems.riscos.linkTarget"/>
+         <contentTypeBinding contentTypeId="com.piccolosystems.riscos.messages"/>
+      </editor>
+   </extension>
+
+   <!-- File > Import... > RISC OS > Build Tree, and the RISC OS menu. -->
+   <extension point="org.eclipse.ui.importWizards">
+      <category id="com.piccolosystems.riscos.lsp.importCategory" name="RISC OS"/>
+      <wizard
+            id="com.piccolosystems.riscos.lsp.importTree"
+            name="Build Tree"
+            category="com.piccolosystems.riscos.lsp.importCategory"
+            class="com.piccolosystems.riscos.lsp.ImportWizard">
+         <description>Import a RISC OS build tree: a project for the tree and one for each component, indexed for the Env files you choose.</description>
+      </wizard>
+   </extension>
+   <extension point="org.eclipse.core.resources.markers" id="buildscan" name="RISC OS makefile scan">
+      <super type="org.eclipse.core.resources.problemmarker"/>
+      <persistent value="true"/>
+   </extension>
+   <extension point="org.eclipse.ui.commands">
+      <category id="com.piccolosystems.riscos.lsp.commands" name="RISC OS"/>
+      <command id="com.piccolosystems.riscos.lsp.import" categoryId="com.piccolosystems.riscos.lsp.commands"
+            name="Import Build Tree..." defaultHandler="com.piccolosystems.riscos.lsp.Commands$Import"/>
+      <command id="com.piccolosystems.riscos.lsp.rescan" categoryId="com.piccolosystems.riscos.lsp.commands"
+            name="Rescan Build Tree" defaultHandler="com.piccolosystems.riscos.lsp.Commands$Rescan"
+            description="Scan the makefiles again, after a makefile, Components file or Env file has changed"/>
+      <command id="com.piccolosystems.riscos.lsp.addExternal" categoryId="com.piccolosystems.riscos.lsp.commands"
+            name="Add External Project..." defaultHandler="com.piccolosystems.riscos.lsp.Commands$AddExternal"
+            description="Add a directory outside the tree that builds against its exports"/>
+      <command id="com.piccolosystems.riscos.lsp.insertNul" categoryId="com.piccolosystems.riscos.lsp.commands"
+            name="Insert NUL" defaultHandler="com.piccolosystems.riscos.lsp.Commands$InsertNul"
+            description="Insert a NUL, shown as ␀, in a file that has them (such as a Messages file)"/>
+   </extension>
+   <extension point="org.eclipse.ui.bindings">
+      <key sequence="M1+M3+0" contextId="org.eclipse.ui.textEditorScope"
+            commandId="com.piccolosystems.riscos.lsp.insertNul"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"/>
+   </extension>
+   <extension point="org.eclipse.ui.menus">
+      <menuContribution locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar id="com.piccolosystems.riscos.lsp.toolbar" label="RISC OS">
+            <control id="com.piccolosystems.riscos.lsp.configurationCombo"
+                     class="com.piccolosystems.riscos.lsp.ConfigurationCombo"/>
+         </toolbar>
+      </menuContribution>
+      <menuContribution locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu id="com.piccolosystems.riscos.lsp.menu" label="RISC OS">
+            <menu id="com.piccolosystems.riscos.lsp.configurations" label="Active Configuration">
+               <dynamic id="com.piccolosystems.riscos.lsp.configurationItems"
+                     class="com.piccolosystems.riscos.lsp.Commands$Configurations"/>
+            </menu>
+            <separator name="tree" visible="true"/>
+            <command commandId="com.piccolosystems.riscos.lsp.rescan"/>
+            <command commandId="com.piccolosystems.riscos.lsp.addExternal"/>
+            <command commandId="com.piccolosystems.riscos.lsp.insertNul" label="Insert NUL (␀)"/>
+            <separator name="import" visible="true"/>
+            <command commandId="com.piccolosystems.riscos.lsp.import"/>
+         </menu>
+      </menuContribution>
+   </extension>
+
+   <!-- The server's riscos-link: URIs name link farm files without resolving the link. -->
+   <extension point="org.eclipse.core.runtime.adapters">
+      <factory
+            adaptableType="java.net.URI"
+            class="com.piccolosystems.riscos.lsp.LinkUris">
+         <adapter type="org.eclipse.core.resources.IResource"/>
+         <adapter type="org.eclipse.core.resources.IFile"/>
+      </factory>
+      <factory
+            adaptableType="java.lang.String"
+            class="com.piccolosystems.riscos.lsp.LinkUris">
+         <adapter type="org.eclipse.core.resources.IResource"/>
+         <adapter type="org.eclipse.core.resources.IFile"/>
+      </factory>
+   </extension>
+
+   <!-- Shows each link farm file by one name only in the Project Explorer. -->
+   <extension point="org.eclipse.ui.navigator.navigatorContent">
+      <commonFilter
+            id="com.piccolosystems.riscos.lsp.mirroredFiles"
+            name="RISC OS: the second names of link farm files"
+            description="Hides whichever name of an objs/ link farm file Preferences › RISC OS doesn't use"
+            class="com.piccolosystems.riscos.lsp.MirroredFilesFilter"
+            activeByDefault="true"
+            visibleInUI="false"/>
+   </extension>
+   <extension point="org.eclipse.ui.navigator.viewer">
+      <viewerContentBinding viewerId="org.eclipse.ui.navigator.ProjectExplorer">
+         <includes>
+            <contentExtension pattern="com.piccolosystems.riscos.lsp.mirroredFiles"/>
+         </includes>
+      </viewerContentBinding>
+   </extension>
+
+   <!-- Untaken IF branches: a background colour, like CDT's inactive code. -->
+   <extension point="org.eclipse.ui.editors.annotationTypes">
+      <type name="com.piccolosystems.riscos.inactive"/>
+      <type name="com.piccolosystems.riscos.skippedInEveryExpansion"/>
+   </extension>
+   <extension point="org.eclipse.ui.editors.markerAnnotationSpecification">
+      <specification
+            annotationType="com.piccolosystems.riscos.inactive"
+            label="RISC OS: not assembled in this configuration"
+            colorPreferenceKey="com.piccolosystems.riscos.inactive.color"
+            colorPreferenceValue="224,224,224"
+            highlightPreferenceKey="com.piccolosystems.riscos.inactive.highlight"
+            highlightPreferenceValue="true"
+            textPreferenceKey="com.piccolosystems.riscos.inactive.text"
+            textPreferenceValue="false"
+            overviewRulerPreferenceKey="com.piccolosystems.riscos.inactive.overview"
+            overviewRulerPreferenceValue="false"
+            verticalRulerPreferenceKey="com.piccolosystems.riscos.inactive.ruler"
+            verticalRulerPreferenceValue="false"
+            presentationLayer="0"
+            includeOnPreferencePage="true"/>
+      <!-- Off by default: a macro body is a template, assembled again for every call. -->
+      <specification
+            annotationType="com.piccolosystems.riscos.skippedInEveryExpansion"
+            label="RISC OS: macro lines skipped in every expansion"
+            colorPreferenceKey="com.piccolosystems.riscos.skipped.color"
+            colorPreferenceValue="236,236,236"
+            highlightPreferenceKey="com.piccolosystems.riscos.skipped.highlight"
+            highlightPreferenceValue="false"
+            textPreferenceKey="com.piccolosystems.riscos.skipped.text"
+            textPreferenceValue="false"
+            overviewRulerPreferenceKey="com.piccolosystems.riscos.skipped.overview"
+            overviewRulerPreferenceValue="false"
+            verticalRulerPreferenceKey="com.piccolosystems.riscos.skipped.ruler"
+            verticalRulerPreferenceValue="false"
+            presentationLayer="0"
+            includeOnPreferencePage="true"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.preferencePages">
+      <page
+            id="com.piccolosystems.riscos.lsp.preferences"
+            name="RISC OS"
+            class="com.piccolosystems.riscos.lsp.Preferences"/>
+      <page
+            id="com.piccolosystems.riscos.lsp.preferences.advanced"
+            category="com.piccolosystems.riscos.lsp.preferences"
+            name="Advanced"
+            class="com.piccolosystems.riscos.lsp.Preferences$Advanced"/>
+   </extension>
+   <extension point="org.eclipse.core.runtime.preferences">
+      <initializer class="com.piccolosystems.riscos.lsp.Preferences$Defaults"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.startup">
+      <startup class="com.piccolosystems.riscos.lsp.Startup"/>
+   </extension>
+   <!-- An assembler or BASIC file opens out into its outline in the Project Explorer, as a C file does. -->
+   <extension point="org.eclipse.ui.navigator.navigatorContent">
+      <navigatorContent
+            id="com.piccolosystems.riscos.lsp.fileSymbols"
+            name="RISC OS: symbols of assembler and BASIC files"
+            contentProvider="com.piccolosystems.riscos.lsp.FileSymbols$ContentProvider"
+            labelProvider="com.piccolosystems.riscos.lsp.FileSymbols$Labels"
+            activeByDefault="true"
+            priority="normal">
+         <triggerPoints>
+            <or>
+               <instanceof value="org.eclipse.core.resources.IFile"/>
+               <instanceof value="com.piccolosystems.riscos.lsp.FileSymbols$Node"/>
+            </or>
+         </triggerPoints>
+         <possibleChildren>
+            <or>
+               <instanceof value="com.piccolosystems.riscos.lsp.FileSymbols$Node"/>
+               <instanceof value="com.piccolosystems.riscos.lsp.FileSymbols$Pending"/>
+            </or>
+         </possibleChildren>
+         <commonSorter
+               id="com.piccolosystems.riscos.lsp.fileSymbolsOrder"
+               class="com.piccolosystems.riscos.lsp.FileSymbols$LikeCdt">
+            <parentExpression>
+               <or>
+                  <instanceof value="org.eclipse.core.resources.IFile"/>
+                  <instanceof value="com.piccolosystems.riscos.lsp.FileSymbols$Node"/>
+               </or>
+            </parentExpression>
+         </commonSorter>
+         <actionProvider
+               id="com.piccolosystems.riscos.lsp.fileSymbolsOpen"
+               class="com.piccolosystems.riscos.lsp.FileSymbols$Open">
+            <enablement>
+               <instanceof value="com.piccolosystems.riscos.lsp.FileSymbols$Node"/>
+            </enablement>
+         </actionProvider>
+      </navigatorContent>
+   </extension>
+   <extension point="org.eclipse.ui.navigator.viewer">
+      <viewerContentBinding viewerId="org.eclipse.ui.navigator.ProjectExplorer">
+         <includes>
+            <contentExtension pattern="com.piccolosystems.riscos.lsp.fileSymbols"/>
+         </includes>
+      </viewerContentBinding>
+      <viewerActionBinding viewerId="org.eclipse.ui.navigator.ProjectExplorer">
+         <includes>
+            <actionExtension pattern="com.piccolosystems.riscos.lsp.fileSymbolsOpen"/>
+         </includes>
+      </viewerActionBinding>
+   </extension>
+</plugin>

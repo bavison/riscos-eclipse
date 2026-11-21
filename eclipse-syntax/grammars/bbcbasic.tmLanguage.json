@@ -1,0 +1,225 @@
+{
+	"name": "BBC BASIC",
+	"scopeName": "source.bbcbasic",
+	"fileTypes": [
+		"bas",
+		"bbc"
+	],
+	"patterns": [
+		{
+			"include": "#line-number"
+		},
+		{
+			"include": "#cli-command"
+		},
+		{
+			"match": ":+",
+			"name": "punctuation.separator.statement.bbcbasic"
+		},
+		{
+			"include": "#assembler"
+		},
+		{
+			"include": "#comment"
+		},
+		{
+			"include": "#procedure-definition"
+		},
+		{
+			"include": "#statement"
+		},
+		{
+			"include": "#expression"
+		},
+		{
+			"match": "[,;'~]",
+			"name": "punctuation.separator.bbcbasic"
+		}
+	],
+	"repository": {
+		"line-number": {
+			"match": "^\\s*(\\d+)(?!\\s*\\*)",
+			"captures": {
+				"1": {
+					"name": "constant.numeric.line-number.bbcbasic"
+				}
+			}
+		},
+		"cli-command": {
+			"patterns": [
+				{
+					"match": "^\\s*(?:(\\d+)\\s*)?(\\*)(.*)$",
+					"captures": {
+						"1": {
+							"name": "constant.numeric.line-number.bbcbasic"
+						},
+						"2": {
+							"name": "keyword.other.cli.bbcbasic"
+						},
+						"3": {
+							"name": "meta.cli-command.bbcbasic"
+						}
+					}
+				},
+				{
+					"match": "(?<=:)\\s*(\\*)(.*)$",
+					"captures": {
+						"1": {
+							"name": "keyword.other.cli.bbcbasic"
+						},
+						"2": {
+							"name": "meta.cli-command.bbcbasic"
+						}
+					}
+				},
+				{
+					"match": "(ELSE|OTHERWISE|REPEAT|THEN)\\s*(\\*)(.*)$",
+					"captures": {
+						"1": {
+							"name": "keyword.control.bbcbasic"
+						},
+						"2": {
+							"name": "keyword.other.cli.bbcbasic"
+						},
+						"3": {
+							"name": "meta.cli-command.bbcbasic"
+						}
+					}
+				}
+			]
+		},
+		"comment": {
+			"patterns": [
+				{
+					"match": "REM *>.*$",
+					"name": "comment.line.rem.filename.bbcbasic"
+				},
+				{
+					"match": "REM.*$",
+					"name": "comment.line.rem.bbcbasic"
+				}
+			]
+		},
+		"procedure-definition": {
+			"match": "(DEF *(?:FN|PROC))([\\w`]+)",
+			"captures": {
+				"1": {
+					"name": "storage.type.function.bbcbasic"
+				},
+				"2": {
+					"name": "entity.name.function.bbcbasic"
+				}
+			}
+		},
+		"statement": {
+			"match": "CIRCLE(?: *FILL)?|DRAW(?: *BY)?|DIM(?!\\()|ELLIPSE(?: *FILL)?|ERROR(?: *EXT)?|FILL(?: *BY)?|INPUT(?:#| *LINE)?|LINE(?: *INPUT)?|LOCAL(?: *DATA| *ERROR)?|MOUSE(?: *COLOUR| *OFF| *ON| *RECTANGLE| *STEP| *TO)?|MOVE(?: *BY)?|ON(?! *ERROR)|ON *ERROR *(?:LOCAL|OFF)?|POINT(?: *BY)?(?!\\()|RECTANGLE(?: *FILL)?|RESTORE(?: *DATA| *ERROR)?|TRACE(?: *CLOSE| *ENDPROC| *OFF| *STEP(?: *FN| *ON| *PROC)?| *TO)?|BEATS|BPUT#|CALL|CASE|CHAIN|CLEAR|CLG|CLOSE#|CLS|COLOR|COLOUR|DATA|ELSE|ENDCASE|ENDIF|ENDPROC|ENDWHILE|END|ENVELOPE|FOR|GCOL|GOSUB|GOTO|IF|INSTALL|LET|LIBRARY|MODE|NEXT|OFF|OF|ON|ORIGIN|OSCLI|OTHERWISE|OVERLAY|PLOT|PRINT#|PRINT|QUIT|READ|REPEAT|REPORT|RETURN|SOUND|STEP|STEREO|STOP|SWAP|SYS|THEN|TINT|TO(?!P)|VDU|VOICES|VOICE|UNTIL|WAIT|WHEN|WHILE|WIDTH",
+			"name": "keyword.control.bbcbasic"
+		},
+		"expression": {
+			"patterns": [
+				{
+					"match": "(FN|PROC)([\\w`]+)",
+					"captures": {
+						"1": {
+							"name": "keyword.other.bbcbasic"
+						},
+						"2": {
+							"name": "entity.name.function.bbcbasic"
+						}
+					}
+				},
+				{
+					"match": "ABS|ACS|ADVAL|ASC|ASN|ATN|BEATS|BEAT|BGET#|CHR\\$|COS|COUNT|DEG|DIM|EOF#|ERL|ERR|EVAL|EXP|EXT#|GET\\$#|GET\\$|GET|HIMEM|INKEY\\$|INKEY|INSTR|INT|LEFT\\$|LEN|LN|LOG|LOMEM|MID\\$|OPENIN|OPENOUT|OPENUP|PAGE|PI|POINT|POS|PTR#|RAD|REPORT\\$|RIGHT\\$|RND|SGN|SIN|SPC|SQR|STR\\$|STRING\\$|SUMLEN|SUM|TAB|TAN|TEMPO|TIME\\$|TIME|TOP|USR|VAL|VPOS",
+					"name": "support.function.bbcbasic"
+				},
+				{
+					"match": "AND|DIV|EOR|MOD|NOT|OR",
+					"name": "keyword.operator.word.bbcbasic"
+				},
+				{
+					"match": "<<|<=|<>|<|>=|>>>|>>|>|[-!$()*+/=?^|]",
+					"name": "keyword.operator.bbcbasic"
+				},
+				{
+					"match": "FALSE|TRUE",
+					"name": "constant.language.bbcbasic"
+				},
+				{
+					"match": "\"(?:[^\"]|\"\")*\"",
+					"name": "string.quoted.double.bbcbasic"
+				},
+				{
+					"match": "[A-Za-z_`][\\w`]*[$%&]?",
+					"name": "variable.other.bbcbasic"
+				},
+				{
+					"match": "@%",
+					"name": "variable.language.bbcbasic"
+				},
+				{
+					"match": "%[01]+",
+					"name": "constant.numeric.binary.bbcbasic"
+				},
+				{
+					"match": "&[0-9A-Fa-f]+",
+					"name": "constant.numeric.hex.bbcbasic"
+				},
+				{
+					"match": "(?:\\d+\\.?\\d*|\\.\\d+)(?:E[-+]?\\d+)?",
+					"name": "constant.numeric.bbcbasic"
+				}
+			]
+		},
+		"assembler": {
+			"begin": "\\[",
+			"end": "\\]",
+			"beginCaptures": {
+				"0": {
+					"name": "keyword.control.assembler.begin.bbcbasic"
+				}
+			},
+			"endCaptures": {
+				"0": {
+					"name": "keyword.control.assembler.end.bbcbasic"
+				}
+			},
+			"name": "meta.assembler.bbcbasic",
+			"patterns": [
+				{
+					"match": ":",
+					"name": "punctuation.separator.statement.bbcbasic"
+				},
+				{
+					"match": "\\.[A-Za-z_`][\\w`]*%?",
+					"name": "entity.name.label.bbcbasic"
+				},
+				{
+					"match": "(?:REM|;)[^:]*",
+					"name": "comment.line.assembler.bbcbasic"
+				},
+				{
+					"begin": "[^\\s:]+",
+					"end": "(?=:)|$",
+					"beginCaptures": {
+						"0": {
+							"name": "keyword.other.mnemonic.bbcbasic"
+						}
+					},
+					"patterns": [
+						{
+							"match": "(?:REM|;)[^:]*",
+							"name": "comment.line.assembler.bbcbasic"
+						},
+						{
+							"include": "#expression"
+						},
+						{
+							"match": "[!#,@\\[\\]^{}]",
+							"name": "punctuation.separator.bbcbasic"
+						}
+					]
+				}
+			]
+		}
+	}
+}

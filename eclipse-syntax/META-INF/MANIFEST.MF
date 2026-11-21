@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: RISC OS languages
+Bundle-Vendor: Piccolo Systems Ltd
+Bundle-SymbolicName: com.piccolosystems.riscos;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-License: MIT
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Require-Bundle: org.eclipse.core.contenttype,
+ org.eclipse.equinox.common,
+ org.eclipse.ui.editors,
+ org.eclipse.ui.genericeditor,
+ org.eclipse.tm4e.registry,
+ org.eclipse.tm4e.ui,
+ org.eclipse.tm4e.languageconfiguration

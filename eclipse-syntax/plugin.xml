@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<!--
+  Syntax colouring for ARM assembly (ObjAsm/armasm), BBC BASIC, CMHG and
+  Messages files, using the TextMate grammars in grammars/ via Eclipse TM4E.
+  The only code is two content describers.
+-->
+<plugin>
+
+   <!-- File associations. The lsp bundle adds the extensionless files the
+        assembler reads, as the language server reports them; more can be
+        added under Preferences > General > Content Types. -->
+   <extension point="org.eclipse.core.contenttype.contentTypes">
+      <!-- A base for the types below, matching no files itself. Being one
+           level more specific than CDT's "Assembly Source File", which also
+           claims *.s at high priority, is what makes ours win the tie. -->
+      <content-type
+            id="com.piccolosystems.riscos.source"
+            name="RISC OS source"
+            base-type="org.eclipse.core.runtime.text"/>
+      <content-type
+            id="com.piccolosystems.riscos.armasm"
+            name="ARM Assembly (ObjAsm/armasm)"
+            base-type="com.piccolosystems.riscos.source"
+            file-extensions="s,hdr"
+            priority="high">
+         <!-- CDT also claims *.s (and, matching without case, *.S) at high
+              priority. Eclipse prefers a type whose describer accepts the
+              contents, so this decides each file by what is in it. -->
+         <describer class="com.piccolosystems.riscos.ObjasmDescriber"/>
+      </content-type>
+      <!-- name,fd1 and name,ffb: BASIC text and tokenised BASIC, by RISC OS
+           filetype. The patterns are split at commas, so ? stands for the comma. -->
+      <content-type
+            id="com.piccolosystems.riscos.bbcbasic"
+            name="BBC BASIC"
+            base-type="com.piccolosystems.riscos.source"
+            file-extensions="bas,bbc"
+            file-patterns="*?fd1,*?ffb"
+            priority="normal">
+         <describer class="com.piccolosystems.riscos.TextDescriber"/>
+      </content-type>
+      <content-type
+            id="com.piccolosystems.riscos.cmhg"
+            name="CMHG"
+            base-type="com.piccolosystems.riscos.source"
+            file-extensions="cmhg"
+            priority="normal">
+         <describer class="com.piccolosystems.riscos.TextDescriber"/>
+      </content-type>
+      <content-type
+            id="com.piccolosystems.riscos.messages"
+            name="RISC OS Messages"
+            base-type="com.piccolosystems.riscos.source"
+            file-names="Messages"
+            priority="normal">
+         <describer class="com.piccolosystems.riscos.TextDescriber"/>
+      </content-type>
+   </extension>
+
+   <!-- Open these content types in the Generic Text Editor. -->
+   <extension point="org.eclipse.ui.editors">
+      <editorContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.armasm"
+            editorId="org.eclipse.ui.genericeditor.GenericEditor"/>
+      <editorContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.bbcbasic"
+            editorId="org.eclipse.ui.genericeditor.GenericEditor"/>
+      <editorContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.cmhg"
+            editorId="org.eclipse.ui.genericeditor.GenericEditor"/>
+      <editorContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.messages"
+            editorId="org.eclipse.ui.genericeditor.GenericEditor"/>
+   </extension>
+
+   <!-- Let TM4E do the colouring in the Generic Text Editor. -->
+   <extension point="org.eclipse.ui.genericeditor.presentationReconcilers">
+      <presentationReconciler
+            class="org.eclipse.tm4e.ui.text.TMPresentationReconciler"
+            contentType="com.piccolosystems.riscos.armasm"/>
+      <presentationReconciler
+            class="org.eclipse.tm4e.ui.text.TMPresentationReconciler"
+            contentType="com.piccolosystems.riscos.bbcbasic"/>
+      <presentationReconciler
+            class="org.eclipse.tm4e.ui.text.TMPresentationReconciler"
+            contentType="com.piccolosystems.riscos.cmhg"/>
+      <presentationReconciler
+            class="org.eclipse.tm4e.ui.text.TMPresentationReconciler"
+            contentType="com.piccolosystems.riscos.messages"/>
+   </extension>
+
+   <!-- The grammars themselves: all but the Messages one are copies of those in bavison/language-riscos. -->
+   <extension point="org.eclipse.tm4e.registry.grammars">
+      <grammar
+            scopeName="source.armasm"
+            path="grammars/armasm.tmLanguage.json"/>
+      <scopeNameContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.armasm"
+            scopeName="source.armasm"/>
+      <grammar
+            scopeName="source.bbcbasic"
+            path="grammars/bbcbasic.tmLanguage.json"/>
+      <scopeNameContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.bbcbasic"
+            scopeName="source.bbcbasic"/>
+      <grammar
+            scopeName="source.cmhg"
+            path="grammars/cmhg.tmLanguage.json"/>
+      <scopeNameContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.cmhg"
+            scopeName="source.cmhg"/>
+      <grammar
+            scopeName="source.riscos-messages"
+            path="grammars/riscos-messages.tmLanguage.json"/>
+      <scopeNameContentTypeBinding
+            contentTypeId="com.piccolosystems.riscos.messages"
+            scopeName="source.riscos-messages"/>
+   </extension>
+
+   <!-- Comment toggling (Ctrl+/), bracket matching and auto-closing. -->
+   <extension point="org.eclipse.tm4e.languageconfiguration.languageConfigurations">
+      <languageConfiguration
+            contentTypeId="com.piccolosystems.riscos.armasm"
+            path="language-configurations/armasm.language-configuration.json"/>
+      <languageConfiguration
+            contentTypeId="com.piccolosystems.riscos.bbcbasic"
+            path="language-configurations/bbcbasic.language-configuration.json"/>
+      <languageConfiguration
+            contentTypeId="com.piccolosystems.riscos.cmhg"
+            path="language-configurations/cmhg.language-configuration.json"/>
+      <languageConfiguration
+            contentTypeId="com.piccolosystems.riscos.messages"
+            path="language-configurations/riscos-messages.language-configuration.json"/>
+   </extension>
+
+</plugin>
